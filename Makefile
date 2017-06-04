@@ -2,12 +2,13 @@ obj-m := hellofs.o
 hellofs-objs := calculator.o
 
 CFLAGS_calculator.o := -DDEBUG
-KERNEL_VERSION:=$(shell uname -r)
-#4.9.6
+KERNEL_VERSION:=4.9.6
+#$(shell uname -r)
+#
 
-KERNEL_SRCS:=/lib/modules/$(KERNEL_VERSION)/build
+KERNEL_SRCS:=../../fuse/buildroot-2017.02.2/output/build/linux-4.9.6
 
-#../buildroot-2017.02.2/output/build/linux-4.9.6
+#/lib/modules/$(KERNEL_VERSION)/build
 #/home/unencr/Prog_projects/fuse/Linux_kernel/linux1
 LINUXDIR=KERNEL_SRCS
 BUILDROOT1=/home/unencr/Prog_projects/fuse/buildroot-2017.02.2
@@ -20,8 +21,7 @@ BUILDROOT1_BIN=$(BUILDROOT1)/output/host/usr/bin
 #/home/unencr/Prog_projects/fuse/buildroot-2017.02.2
 #arm-arm926t-linux-gnueabihf
 #arm-buildroot-linux-uclibcgnueabi-
-MAKE_OPTIONS=
-#ARCH=arm CROSS_COMPILE=arm-linux- PATH=$(BUILDROOT1_BIN):$(PATH)
+MAKE_OPTIONS=ARCH=arm CROSS_COMPILE=arm-linux- PATH=$(BUILDROOT1_BIN):$(PATH)
 #arm-arm926t-linux-gnueabif-
 #arm-cortex_a8-linux-gnueabihf-
 #cd $(BUILDROOT1_BIN) 	SET PATH=$(BUILDROOT1_BIN):$(PATH)
