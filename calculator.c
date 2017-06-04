@@ -3,6 +3,10 @@
 #include <linux/init.h>	  // included for __init and __exit macros
 #include <linux/fs.h>
 #include <asm/uaccess.h>
+
+#include <linux/device.h>
+#include <linux/version.h>
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("mml");
 MODULE_DESCRIPTION("A Simple kernel calc World module");
@@ -52,12 +56,15 @@ static const struct file_operations dev_fops = {
 	.read = dev_read,
 };
 #define DEVICE_FIRST 0
-#define DEVICE_COUNT 3
+#define DEVICE_COUNT 2
 #define MODNAME "my_kernel_calc_dev"
 static struct cdev hcdev;
+
+static struct class *devclass;
+static char const* devnames[2] = { "operand", "result" };
 static int __init kernel_calc_init(void)
 {
-	int ret;
+	int ret, i;
 	dev_t dev;
 	if (major != 0)
 	{
@@ -83,20 +90,42 @@ static int __init kernel_calc_init(void)
 		printk(KERN_ERR "=== Can not add char device\n");
 		goto err;
 	}
-	printk(KERN_INFO "=========== kernel_calc module installed %d:%d ==============\n",
-		   MAJOR(dev), MINOR(dev));
+	devclass = class_create(THIS_MODULE, "dyn_class"); /* struct class* */
+	for (i = 0; i < DEVICE_COUNT; i++)
+	{
+
+		dev = MKDEV(major, DEVICE_FIRST + i);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
+		/* struct device *device_create( struct class *cls, struct device *parent,
+dev_t devt, const char *fmt, ...); */
+		device_create(devclass, NULL, dev, "%s_%d", devnames[i], i);
+#else
+		// прототип device_create() изменился!
+		/* struct device *device_create( struct class *cls, struct device *parent,
+71dev_t devt, void *drvdata, const char *fmt, ...); */
+		device_create(devclass, NULL, dev, NULL, "%s_%d", devnames[i], i);
+#endif
+	}
+	printk(KERN_INFO "======== kerncalc module installed %d:[%d-%d] ===========\n",
+		   MAJOR(dev), DEVICE_FIRST, MINOR(dev));
 err:
 	return ret;// Non-zero return means that the module couldn't be loaded.
 
 }
 
-
-
 static void __exit kernel_calc_cleanup(void)
 {
 	//if (ret != 0)
 		//pr_err("cannot unregister \n");
-	//pr_debug("hellofs module unloaded\n");
+	//pr_debug(" module unloaded\n");
+	dev_t dev;
+	int i;
+	for (i = 0; i < DEVICE_COUNT; i++)
+	{
+		dev = MKDEV(major, DEVICE_FIRST + i);
+		device_destroy(devclass, dev);
+	}
+	class_destroy(devclass);
 	cdev_del(&hcdev);
 	unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
 	printk(KERN_INFO "=============== module removed ==================\n");
