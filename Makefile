@@ -29,6 +29,7 @@ PATH:=$(BUILDROOT1_BIN):$(PATH)
 
 all: BRBIN
 	make -C $(KERNEL_SRCS) $(MAKE_OPTIONS) M=$(PWD) modules
+	mkdir -p ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
 	cp kerncalc.ko ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
 
 BRBIN:
