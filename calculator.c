@@ -7,16 +7,26 @@
 #include <linux/device.h>
 #include <linux/version.h>
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("mml");
 MODULE_DESCRIPTION("A Simple kernel calc World module");
 
+static int calc_result = 0;
 static char *hello_str = "Hello, world!\n";
 // buffer!
 static ssize_t dev_read(struct file *file, char *buf,
 						size_t count, loff_t *ppos)
 {
-	int len = strlen(hello_str);
+	char buff[255];
+	int len;
+	int res = snprintf( buff, 255, "%d .%s", calc_result, hello_str);
+	if (res <= 0)
+		return -EOVERFLOW;
+	len = MIN(res, 255);
+	//strlen(hello_str);
 	printk(KERN_INFO "=== read : %d\n", count);
 	if (count < len)
 		return -EINVAL;
@@ -25,7 +35,8 @@ static ssize_t dev_read(struct file *file, char *buf,
 		printk(KERN_INFO "=== read return : 0\n"); // EOF
 		return 0;
 	}
-	if (copy_to_user(buf, hello_str, len))
+
+	if (copy_to_user(buf, buff, len))
 		return -EINVAL;
 	*ppos = len;
 	printk(KERN_INFO "=== read return : %d\n", len);
@@ -49,7 +60,13 @@ static int dev_release(struct inode *n, struct file *f)
 	device_open--;
 	return EOK;
 }
-static const struct file_operations dev_fops = {
+static const struct file_operations operand_read_fops = {
+	.owner = THIS_MODULE,
+	.open = dev_open,
+	.release = dev_release,
+	.read = dev_read,
+};
+static const struct file_operations result_write_fops = {
 	.owner = THIS_MODULE,
 	.open = dev_open,
 	.release = dev_release,
@@ -81,7 +98,7 @@ static int __init kernel_calc_init(void)
 		printk(KERN_ERR "=== Can not register char device region\n");
 		goto err;
 	}
-	cdev_init(&hcdev, &dev_fops);
+	cdev_init(&hcdev, &operand_read_fops);
 	hcdev.owner = THIS_MODULE;
 	ret = cdev_add(&hcdev, dev, DEVICE_COUNT);
 	if (ret < 0)
