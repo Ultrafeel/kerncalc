@@ -1,5 +1,5 @@
-obj-m := hellofs.o
-hellofs-objs := calculator.o
+obj-m := kerncalc.o
+kerncalc-objs := calculator.o
 
 CFLAGS_calculator.o := -DDEBUG
 KERNEL_VERSION:=4.9.6
@@ -29,9 +29,7 @@ PATH:=$(BUILDROOT1_BIN):$(PATH)
 
 all: BRBIN
 	make -C $(KERNEL_SRCS) $(MAKE_OPTIONS) M=$(PWD) modules
-
-
-#cp hellofs.ko ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
+	cp kerncalc.ko ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
 
 BRBIN:
 	echo MAKE_OPTIONS = $(MAKE_OPTIONS)
