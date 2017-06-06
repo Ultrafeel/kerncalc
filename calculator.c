@@ -44,19 +44,28 @@ static ssize_t dev_read(struct file *file, char *buf,
 	printk(KERN_INFO "=== read return : %d\n", len);
 	return len;
 }
-static ssize_t operand_write (struct file *file, char const *data,
+enum {max_mess_size = 255};
+//static char   message[max_mess_size + 1] = {0};           ///< Memory for the string that is passed from userspace
+//static short  size_of_message;              ///< Used to remember the size of the string stored
+
+static ssize_t operand_write (struct file *file, char const *data1,
 						size_t count, loff_t *ppos)
 {
 	//long result;
 	//int ret;// char *pos;
 	char const* cpos;
 	//char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
-	cpos = data;
+	cpos = data1;
+	
+	//snprintf(message, max_mess_size, "%s(%zu letters)", data1, count);   // appending received string with its length
+	//size_of_message = strlen(message);                 // store the length of the stored message
+	printk(KERN_INFO " kerncalc: Received %zu characters from the user\n", count);
+ 
 	printk(KERN_INFO "=== pre write 0:count %zu , \n", count);
-	printk(KERN_INFO "=== pre write 1: str %c%c\n",  *cpos, *cpos);
-
+	printk(KERN_INFO "=== pre write 1: str %c\n", *cpos );
+//*message, *(message+1)
 	//pos = strchr(format, '0');
-	//*pos += MIN(count, 8);
+	//*pos += MIN(count, 8); /home/unencr/Prog_projects/kernel_calcf/kernel_calc/target_bin
 	//printk(format, count, data);
 	//if (count > 0)
 	//	data[count - 1] = 0;
