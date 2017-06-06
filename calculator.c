@@ -47,29 +47,28 @@ static ssize_t dev_read(struct file *file, char *buf,
 static ssize_t operand_write (struct file *file, char const *data,
 						size_t count, loff_t *ppos)
 {
-	long result;
-	int ret; char *pos;
+	//long result;
+	//int ret;// char *pos;
 	char const* cpos;
-	char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
+	//char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
 	cpos = data;
-	printk(KERN_INFO "=== pre write :count %zu , \n", count);
+	printk(KERN_INFO "=== pre write 0:count %zu , \n", count);
+	printk(KERN_INFO "=== pre write 1: str %c%c\n",  *cpos, *cpos);
 
-	printk(KERN_INFO "=== pre write : str %c%c\n",  *cpos++, *cpos);
-
-	pos = strchr(format, '0');
-	*pos += MIN(count, 8);
-	printk(format, count, data);
+	//pos = strchr(format, '0');
+	//*pos += MIN(count, 8);
+	//printk(format, count, data);
 	//if (count > 0)
 	//	data[count - 1] = 0;
-	ret = kstrtol(data, 10, &result);// sscanf atoi
-	if (ret < 0) {
-		pr_err( "=== kstrtol : %d \n", ret);
-		return 0;
-	}
+	//ret = kstrtol(data, 10, &result);// sscanf atoi
+	//if (ret < 0) {
+	//	pr_err( "=== kstrtol : %d \n", ret);
+	//	return 0;
+	//}
 	//include <errno.h>
 //EINVAL
-	calc_result = result;
-	printk(KERN_INFO "=== write : %zu , str %s, parsed: %ld\n", count, data, result);
+	//calc_result = result;
+	//printk(KERN_INFO "=== write : %zu , str %s, parsed: %ld\n", count, data, result);
 	return count;
 	
 }
