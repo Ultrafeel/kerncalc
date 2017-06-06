@@ -31,6 +31,8 @@ all: BRBIN
 	make -C $(KERNEL_SRCS) $(MAKE_OPTIONS) M=$(PWD) modules
 	mkdir -p ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
 	cp kerncalc.ko ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
+	mkdir -p ./$(TARGETDIR)/etc/init.d/
+	cp S11load_kerncalc.sh ./$(TARGETDIR)/etc/init.d/
 
 BRBIN:
 	echo MAKE_OPTIONS = $(MAKE_OPTIONS)

@@ -46,3 +46,4 @@ nbdist/
 modules.order
 Module.symvers
 kerncalc.mod.c
+target_bin/etc/init.d/S11load_kerncalc.sh
