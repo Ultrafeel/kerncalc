@@ -108,7 +108,7 @@ static const struct file_operations operand_fops = {
 #define MODNAME "my_kernel_calc_dev"
 static struct cdev hcdev_result;
 static struct cdev hcdev_operand;
-static struct class *devclass;
+static struct class *devclass[2];
 static char const* devnames[2] = { "operand", "result" };
 static int __init kernel_calc_init(void)
 {
@@ -148,7 +148,9 @@ static int __init kernel_calc_init(void)
 		printk(KERN_ERR "=== Can not add char device\n");
 		goto err;
 	}
-	devclass = class_create(THIS_MODULE, "dyn_class"); /* struct class* */
+	//operand_class 
+	devclass[0] = class_create(THIS_MODULE, "kerncalc_operand_class"); /* struct class* */
+	devclass[1] = class_create(THIS_MODULE, "kerncalc_result_class"); /* struct class* */
 	for (i = 0; i < DEVICE_COUNT; i++)
 	{
 
@@ -156,12 +158,12 @@ static int __init kernel_calc_init(void)
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 		/* struct device *device_create( struct class *cls, struct device *parent,
 dev_t devt, const char *fmt, ...); */
-		device_create(devclass, NULL, dev, "%s_%d", devnames[i], i);
+		device_create(devclass[i], NULL, dev, "%s_%d", devnames[i], i);
 #else
 		// прототип device_create() изменился!
 		/* struct device *device_create( struct class *cls, struct device *parent,
   dev_t devt, void *drvdata, const char *fmt, ...); */
-		device_create(devclass, NULL, dev, NULL, "%s_%d", devnames[i], i);
+		device_create(devclass[i], NULL, dev, NULL, "%s_%d", devnames[i], i);
 #endif
 	}
 	printk(KERN_INFO "======== kerncalc module installed %d:[%d-%d] ===========\n",
@@ -181,9 +183,9 @@ static void __exit kernel_calc_cleanup(void)
 	for (i = 0; i < DEVICE_COUNT; i++)
 	{
 		dev = MKDEV(major, DEVICE_FIRST + i);
-		device_destroy(devclass, dev);
+		device_destroy(devclass[i], dev);
+	class_destroy(devclass[i]);
 	}
-	class_destroy(devclass);
 	cdev_del(&hcdev_operand);
 	cdev_del(&hcdev_result);
 
