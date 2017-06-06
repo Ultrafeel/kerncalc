@@ -7,6 +7,8 @@
 #include <linux/device.h>
 #include <linux/version.h>
 
+//#include <stdlib.h>
+
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -42,6 +44,35 @@ static ssize_t dev_read(struct file *file, char *buf,
 	printk(KERN_INFO "=== read return : %d\n", len);
 	return len;
 }
+static ssize_t operand_write (struct file *file, char const *data,
+						size_t count, loff_t *ppos)
+{
+	long result;
+	int ret; char *pos;
+	char const* cpos;
+	char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
+	cpos = data;
+	printk(KERN_INFO "=== pre write :count %zu , \n", count);
+
+	printk(KERN_INFO "=== pre write : str %c%c\n",  *cpos++, *cpos);
+
+	pos = strchr(format, '0');
+	*pos += MIN(count, 8);
+	printk(format, count, data);
+	//if (count > 0)
+	//	data[count - 1] = 0;
+	ret = kstrtol(data, 10, &result);// sscanf atoi
+	if (ret < 0) {
+		pr_err( "=== kstrtol : %d \n", ret);
+		return 0;
+	}
+	//include <errno.h>
+//EINVAL
+	calc_result = result;
+	printk(KERN_INFO "=== write : %zu , str %s, parsed: %ld\n", count, data, result);
+	return count;
+	
+}
 #include <linux/cdev.h>
 
 static int major = 0;
@@ -60,23 +91,23 @@ static int dev_release(struct inode *n, struct file *f)
 	device_open--;
 	return EOK;
 }
-static const struct file_operations operand_read_fops = {
+static const struct file_operations result_fops = {
 	.owner = THIS_MODULE,
 	.open = dev_open,
 	.release = dev_release,
 	.read = dev_read,
 };
-static const struct file_operations result_write_fops = {
+static const struct file_operations operand_fops = {
 	.owner = THIS_MODULE,
 	.open = dev_open,
 	.release = dev_release,
-	.read = dev_read,
+	.write = operand_write,
 };
 #define DEVICE_FIRST 0
 #define DEVICE_COUNT 2
 #define MODNAME "my_kernel_calc_dev"
-static struct cdev hcdev;
-
+static struct cdev hcdev_result;
+static struct cdev hcdev_operand;
 static struct class *devclass;
 static char const* devnames[2] = { "operand", "result" };
 static int __init kernel_calc_init(void)
@@ -98,9 +129,19 @@ static int __init kernel_calc_init(void)
 		printk(KERN_ERR "=== Can not register char device region\n");
 		goto err;
 	}
-	cdev_init(&hcdev, &operand_read_fops);
-	hcdev.owner = THIS_MODULE;
-	ret = cdev_add(&hcdev, dev, DEVICE_COUNT);
+	cdev_init(&hcdev_operand, &operand_fops);
+	hcdev_operand.owner = THIS_MODULE;
+	ret = cdev_add(&hcdev_operand, dev, 1);
+	if (! (ret < 0)) {
+		cdev_init(&hcdev_result, &result_fops);
+		hcdev_result.owner = THIS_MODULE;
+		ret = cdev_add(&hcdev_result, MKDEV(major, DEVICE_FIRST + 1 ), 1);
+	} else 
+	{
+		unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), 1);
+		printk(KERN_ERR "=== Can not add char device\n");
+		goto err;
+	}
 	if (ret < 0)
 	{
 		unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
@@ -119,7 +160,7 @@ dev_t devt, const char *fmt, ...); */
 #else
 		// прототип device_create() изменился!
 		/* struct device *device_create( struct class *cls, struct device *parent,
-71dev_t devt, void *drvdata, const char *fmt, ...); */
+  dev_t devt, void *drvdata, const char *fmt, ...); */
 		device_create(devclass, NULL, dev, NULL, "%s_%d", devnames[i], i);
 #endif
 	}
@@ -143,7 +184,9 @@ static void __exit kernel_calc_cleanup(void)
 		device_destroy(devclass, dev);
 	}
 	class_destroy(devclass);
-	cdev_del(&hcdev);
+	cdev_del(&hcdev_operand);
+	cdev_del(&hcdev_result);
+
 	unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
 	printk(KERN_INFO "=============== module removed ==================\n");
 }
