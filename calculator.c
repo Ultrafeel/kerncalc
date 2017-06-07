@@ -27,7 +27,6 @@ static char *hello_str = "Hello, world!\n";
 static int arguments[2] = { 0, 0};
 static char operation = '+';
 
-// buffer!
 static ssize_t dev_read(struct file *file, char *buf,
 						size_t count, loff_t *ppos)
 {
@@ -44,8 +43,7 @@ static ssize_t dev_read(struct file *file, char *buf,
 		calc_result = arguments[0] - arguments[1];
 		break;		
 	}
-	//plus
-	//arguments
+
 	res = snprintf( buff, 255, "%d", calc_result);
 	if (res <= 0)
 		return -EOVERFLOW;
@@ -75,21 +73,15 @@ static char   message[max_mess_size + 1] = {0};           ///< Memory for the st
 static ssize_t oper_write (struct file *file, char const *data1,
 						size_t count, loff_t *ppos)
 {
-	//long result;
 	unsigned long notcopied, n;
-	//int ret;// char *pos;
-	//char const* cpos;
-	//char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
-	//cpos = data1;
 	n = MIN(count, max_mess_size-1);
 	notcopied = copy_from_user(message, data1, n);
 	if (count == notcopied) {
 		pr_err(" op _write not copied\n");
 		return 0;
 	}
-	//message[copied] = 0;
-	//snprintf(message, max_mess_size, "%s(%zu letters)", data1, count);   // appending received string with its length
-	//size_of_message = strlen(message);                 // store the length of the stored message
+
+
 	printk(KERN_INFO " === kerncalc: Received %zu characters from the user\n", count);
 
 	printk(KERN_INFO "=== pre write 0:copied %zu , \n", count);
@@ -106,14 +98,6 @@ static ssize_t oper_write (struct file *file, char const *data1,
 	}
 	
 	// /home/unencr/Prog_projects/kernel_calcf/kernel_calc/target_bin
-	//printk(format, count, data);
-	//if (count > 0)
-	//	data[count - 1] = 0;
-
-	//include <errno.h>
-//EINVAL
-	//calc_result = result;
-	//printk(KERN_INFO "=== write : %zu , str %s, parsed: %ld\n", count, data, result);
 	return count;//copied
 	
 }
@@ -329,9 +313,7 @@ err:
 
 static void __exit kernel_calc_cleanup(void)
 {
-	//if (ret != 0)
-		//pr_err("cannot unregister \n");
-	//pr_debug(" module unloaded\n");
+
 	dev_t dev;
 	int i;
 	for (i = 0; i < DEVICE_COUNT; i++)
