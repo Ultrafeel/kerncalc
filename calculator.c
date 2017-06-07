@@ -7,6 +7,12 @@
 #include <linux/device.h>
 #include <linux/version.h>
 
+
+#include <linux/cdev.h>
+
+#include <linux/parport.h>
+#include <linux/pci.h>
+
 //#include <stdlib.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -18,14 +24,30 @@ MODULE_DESCRIPTION("A Simple kernel calc World module");
 
 static int calc_result = 0;
 static char *hello_str = "Hello, world!\n";
+static int arguments[2] = { 0, 0};
 static char operation = '+';
+
 // buffer!
 static ssize_t dev_read(struct file *file, char *buf,
 						size_t count, loff_t *ppos)
 {
 	char buff[255];
 	int len;
-	int res = snprintf( buff, 255, "Result: %d .%s", calc_result, hello_str);
+	
+
+	switch (operation)
+	{
+	case '+':
+		calc_result = arguments[0] + arguments[1];
+		break;
+	case '-':
+		calc_result = arguments[0] - arguments[1];
+		break;		
+	}
+	//plus
+	//arguments
+	int res = snprintf( buff, 255, "Result: %d %c %d = %d .%s", arguments[0] ,
+		operation, arguments[1], calc_result, hello_str);
 	if (res <= 0)
 		return -EOVERFLOW;
 	len = MIN(res, 255);
@@ -63,28 +85,23 @@ static ssize_t operand_write (struct file *file, char const *data1,
 	//snprintf(message, max_mess_size, "%s(%zu letters)", data1, count);   // appending received string with its length
 	//size_of_message = strlen(message);                 // store the length of the stored message
 	printk(KERN_INFO " kerncalc: Received %zu characters from the user\n", count);
- 
+
 	printk(KERN_INFO "=== pre write 0:count %zu , \n", count);
-	printk(KERN_INFO "=== pre write 1: str %s\n", message );
-	switch (*message)
-	{
-		case '+':
-		case '-':
-			operation = *message;
-			printk(KERN_INFO "=== kerncalc: operation %c is set\n", operation);
+	printk(KERN_INFO "=== pre write 1: str %s\n", message);
+	switch (*message) {
+	case '+':
+	case '-':
+		operation = *message;
+		printk(KERN_INFO "=== kerncalc: operation %c is set\n", operation);
 		break;
-		default:
+	default:
 	}
 	
 	// /home/unencr/Prog_projects/kernel_calcf/kernel_calc/target_bin
 	//printk(format, count, data);
 	//if (count > 0)
 	//	data[count - 1] = 0;
-	//ret = kstrtol(data, 10, &result);// sscanf atoi
-	//if (ret < 0) {
-	//	pr_err( "=== kstrtol : %d \n", ret);
-	//	return 0;
-	//}
+
 	//include <errno.h>
 //EINVAL
 	//calc_result = result;
@@ -92,7 +109,106 @@ static ssize_t operand_write (struct file *file, char const *data1,
 	return count;
 	
 }
-#include <linux/cdev.h>
+//----------------------------------------
+#define LEN_MSG 160
+static char buf_msg[ LEN_MSG + 1 ] = "Hello from module!\n";
+/* <linux/device.h>
+LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
+struct class_attribute {
+struct attribute attr;
+ssize_t (*show)(struct class *class, struct class_attribute *attr, char *buf);
+ssize_t (*store)(struct class *class, struct class_attribute *attr,
+const char *buf, size_t count);
+};
+LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,32)
+struct class_attribute {
+struct attribute attr;
+ssize_t (*show)(struct class *class, char *buf);
+ssize_t (*store)(struct class *class, const char *buf, size_t count);
+};
+ */
+/* sysfs show() method. Calls the show() method corresponding to the individual sysfs file */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
+
+static ssize_t x_show(struct class *class, struct class_attribute *attr, char *buf)
+{
+#else
+
+static ssize_t x_show(struct class *class, char *buf)
+{
+#endif
+	strcpy(buf, buf_msg);
+	printk("read %d\n", strlen(buf));
+	return strlen(buf);
+}
+
+static ssize_t argument_store(int opnum, const char *buf, size_t count)
+{
+#endif
+	printk("write %d\n", count);
+	strncpy(buf_msg, buf, count);
+	buf_msg[ count ] = '\0';	
+	
+	ret = kstrtol(buf_msg, 10, &arguments[opnum]);// sscanf atoi
+	if (ret < 0) {
+		pr_err( "=== kstrtol : %d \n", ret);
+		return 0;
+	}
+	pr_info("=== parsed %d", &arguments[opnum]);
+	return count;
+}
+
+/* sysfs store() method. Calls the store() method corresponding to the individual sysfs file */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
+
+static ssize_t argument1_store(struct class *class, struct class_attribute *attr,
+	const char *buf, size_t count)
+{
+#else
+
+static ssize_t argument1_store(struct class *class, const char *buf, size_t count)
+{
+#endif
+	
+
+	return argument_store(1, buf, count);
+}
+
+/* <linux/device.h>
+#define CLASS_ATTR(_name, _mode, _show, _store) \
+struct class_attribute class_attr_##_name = __ATTR(_name, _mode, _show, _store) */
+CLASS_ATTR(argument1, (S_IWUSR | S_IRUGO), &x_show, &argument1_store);
+CLASS_ATTR(argument2, (S_IWUSR | S_IRUGO), &x_show, &argument2_store);
+static struct class *sysfs_class;
+
+int sysfs_init(void)
+{
+	int res;
+	sysfs_class = class_create(THIS_MODULE, "arg-class");
+	if (IS_ERR(sysfs_class)) printk("bad class create\n");
+	res = class_create_file(sysfs_class, &class_attr_argument1);
+	if (res < 0)
+		return ret;
+	res = class_create_file(sysfs_class, &class_attr_argument2);
+
+	/* <linux/device.h>
+	extern int __must_check class_create_file(struct class *class, const struct class_attribute
+	 *attr); */
+	printk("kerncalc 'sysfs'  initialized\n");
+	return ret;
+}
+
+void sysfs_cleanup(void)
+{
+	/* <linux/device.h>
+	extern void class_remove_file(struct class *class, const struct class_attribute *attr); */
+	class_remove_file(sysfs_class, &class_attr_argument1);
+	class_remove_file(sysfs_class, &class_attr_argument2);
+
+	class_destroy(sysfs_class);
+	return;
+}
+
 
 static int major = 0;
 module_param(major, int, S_IRUGO);
@@ -185,7 +301,11 @@ dev_t devt, const char *fmt, ...); */
 		device_create(devclass[i], NULL, dev, NULL, "%s", devnames[i], i);
 #endif
 	}
-	printk(KERN_INFO "======== kerncalc module installed %d:[%d-%d] ===========\n",
+	ret = sysfs_init();
+	if (ret < 0) {
+		goto err;
+	}
+	printk(KERN_INFO "======== kerncalc module installed %d:[%d-%d],===========\n",
 		   MAJOR(dev), DEVICE_FIRST, MINOR(dev));
 err:
 	return ret;// Non-zero return means that the module couldn't be loaded.
@@ -209,6 +329,7 @@ static void __exit kernel_calc_cleanup(void)
 	cdev_del(&hcdev_result);
 
 	unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
+	sysfs_cleanup()
 	printk(KERN_INFO "=============== module removed ==================\n");
 }
 
