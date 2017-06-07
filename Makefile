@@ -41,3 +41,4 @@ BRBIN:
 
 clean:
 	make -C $(KERNEL_SRCS)  $(MAKE_OPTIONS) M=$(PWD) clean
+	-rm  -rfv  ./$(TARGETDIR)
