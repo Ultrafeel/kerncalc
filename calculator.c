@@ -46,13 +46,13 @@ static ssize_t dev_read(struct file *file, char *buf,
 	}
 	//plus
 	//arguments
-	res = snprintf( buff, 255, "Result: %d %c %d = %d .%s", arguments[0] ,
-		operation, arguments[1], calc_result, hello_str);
+	res = snprintf( buff, 255, "%d", calc_result);
 	if (res <= 0)
 		return -EOVERFLOW;
 	len = MIN(res, 255);
 	//strlen(hello_str);
-	printk(KERN_INFO "=== read : %d\n", count);
+	printk(KERN_INFO "=== Result: %d %c %d = %d .%s read : %d\n",arguments[0] ,
+		operation, arguments[1], calc_result, hello_str, count);
 	if (count < len)
 		return -EINVAL;
 	if (*ppos != 0)
@@ -76,32 +76,33 @@ static ssize_t oper_write (struct file *file, char const *data1,
 						size_t count, loff_t *ppos)
 {
 	//long result;
-	unsigned long copied;
+	unsigned long notcopied, n;
 	//int ret;// char *pos;
 	//char const* cpos;
 	//char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
 	//cpos = data1;
-	copied = copy_from_user(message, data1, MIN(count, max_mess_size-1));
-	if (count == copied) {
-		pr_err(" op _write not copied");
+	n = MIN(count, max_mess_size-1);
+	notcopied = copy_from_user(message, data1, n);
+	if (count == notcopied) {
+		pr_err(" op _write not copied\n");
 		return 0;
 	}
-	message[copied] = 0;
+	//message[copied] = 0;
 	//snprintf(message, max_mess_size, "%s(%zu letters)", data1, count);   // appending received string with its length
 	//size_of_message = strlen(message);                 // store the length of the stored message
-	printk(KERN_INFO " kerncalc: Received %zu characters from the user\n", count);
+	printk(KERN_INFO " === kerncalc: Received %zu characters from the user\n", count);
 
-	printk(KERN_INFO "=== pre write 0:count %lu , \n", copied);
-	printk(KERN_INFO "=== pre write 1: str %s\n", message);
+	printk(KERN_INFO "=== pre write 0:copied %zu , \n", count);
+	printk(KERN_INFO "=== pre write 1: str : '%s'\n", message);
 	switch (*message) {
 	case '+':
 	case '-':
 		operation = *message;
-		printk(KERN_INFO "=== kerncalc: operation %c is set\n", operation);
+		printk(KERN_INFO "=== kerncalc: operation '%c' is set\n", operation);
 		break;
 	default:
-		pr_err(" no operation");
-		return 0;
+		pr_err("=== kerncalc no operation\n");
+		return count;
 	}
 	
 	// /home/unencr/Prog_projects/kernel_calcf/kernel_calc/target_bin
@@ -113,7 +114,7 @@ static ssize_t oper_write (struct file *file, char const *data1,
 //EINVAL
 	//calc_result = result;
 	//printk(KERN_INFO "=== write : %zu , str %s, parsed: %ld\n", count, data, result);
-	return copied;
+	return count;//copied
 	
 }
 //----------------------------------------
@@ -151,11 +152,11 @@ static ssize_t arg_show(int opnum , char *buf)
 }
 static ssize_t arg1_show(SYSFS_SHOW_DECLARE , char *buf)
 {
-	return arg_show(1, buf);
+	return arg_show(0, buf);
 }
 static ssize_t arg2_show(SYSFS_SHOW_DECLARE , char *buf)
 {
-	return arg_show(2, buf);
+	return arg_show(1, buf);
 }
 
 static ssize_t argument_store(int opnum, const char *buf, size_t count)
@@ -174,14 +175,14 @@ static ssize_t argument_store(int opnum, const char *buf, size_t count)
 		pr_err( "=== kstrtol : %d \n", ret);
 		return 0;
 	}
-	pr_info("=== parsed %d", arguments[opnum]);
+	pr_info("=== parsed %d\n", arguments[opnum]);
 	return count;
 }
 
 
 static ssize_t argument1_store(SYSFS_STORE_DECLARE , const char *buf, size_t count)	
 {
-	return argument_store(1, buf, count);
+	return argument_store(0, buf, count);
 }
 static ssize_t argument2_store(SYSFS_STORE_DECLARE , const char *buf, size_t count)	
 {
