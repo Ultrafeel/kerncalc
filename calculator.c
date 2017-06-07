@@ -30,7 +30,11 @@ static ssize_t dev_read(struct file *file, char *buf,
 	char buff[255];
 	int len;
 	int res;
-
+	if (*ppos != 0)
+	{
+		printk(KERN_INFO "=== read with offset: requested max: %zu, return : 0.\n", count); // EOF
+		return 0;
+	}
 	switch (operation)
 	{
 	case '+':
@@ -44,17 +48,13 @@ static ssize_t dev_read(struct file *file, char *buf,
 	res = snprintf( buff, 255, "%d", calc_result);
 	if (res <= 0)
 		return -EOVERFLOW;
-	len = MIN(res, 255);
+	len = MIN(res, 255) + 1;
 	//strlen(hello_str);
 	printk(KERN_INFO "=== Result: %d %c %d = %d. read : %d.\n",arguments[0] ,
 		operation, arguments[1], calc_result, count);
 	if (count < len)
 		return -EINVAL;
-	if (*ppos != 0)
-	{
-		printk(KERN_INFO "=== read return : 0\n"); // EOF
-		return 0;
-	}
+
 
 	if (copy_to_user(buf, buff, len))
 		return -EINVAL;
