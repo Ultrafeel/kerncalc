@@ -72,7 +72,7 @@ static char   message[max_mess_size + 1] = {0};           ///< Memory for the st
 //static short  size_of_message;              ///< Used to remember the size of the string stored
 
 //i.e. operation
-static ssize_t operand_write (struct file *file, char const *data1,
+static ssize_t oper_write (struct file *file, char const *data1,
 						size_t count, loff_t *ppos)
 {
 	//long result;
@@ -246,17 +246,17 @@ static const struct file_operations result_fops = {
 	.release = dev_release,
 	.read = dev_read,
 };
-static const struct file_operations operand_fops = {
+static const struct file_operations oper_fops = {
 	.owner = THIS_MODULE,
 	.open = dev_open,
 	.release = dev_release,
-	.write = operand_write,
+	.write = oper_write,
 };
 #define DEVICE_FIRST 0
 #define DEVICE_COUNT 2
 #define MODNAME "my_kernel_calc_dev"
 static struct cdev hcdev_result;
-static struct cdev hcdev_operand;
+static struct cdev hcdev_oper;
 static struct class *devclass[2];
 static char const* devnames[2] = { "operand", "result" };
 static int __init kernel_calc_init(void)
@@ -278,9 +278,9 @@ static int __init kernel_calc_init(void)
 		printk(KERN_ERR "=== Can not register char device region\n");
 		goto err;
 	}
-	cdev_init(&hcdev_operand, &operand_fops);
-	hcdev_operand.owner = THIS_MODULE;
-	ret = cdev_add(&hcdev_operand, dev, 1);
+	cdev_init(&hcdev_oper, &oper_fops);
+	hcdev_oper.owner = THIS_MODULE;
+	ret = cdev_add(&hcdev_oper, dev, 1);
 	if (! (ret < 0)) {
 		cdev_init(&hcdev_result, &result_fops);
 		hcdev_result.owner = THIS_MODULE;
@@ -339,7 +339,7 @@ static void __exit kernel_calc_cleanup(void)
 		device_destroy(devclass[i], dev);
 	class_destroy(devclass[i]);
 	}
-	cdev_del(&hcdev_operand);
+	cdev_del(&hcdev_oper);
 	cdev_del(&hcdev_result);
 
 	unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
