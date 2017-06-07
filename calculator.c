@@ -166,12 +166,12 @@ static int __init kernel_calc_init(void)
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 		/* struct device *device_create( struct class *cls, struct device *parent,
 dev_t devt, const char *fmt, ...); */
-		device_create(devclass[i], NULL, dev, "%s_%d", devnames[i], i);
+		device_create(devclass[i], NULL, dev, "%s", devnames[i], i);
 #else
 		// прототип device_create() изменился!
 		/* struct device *device_create( struct class *cls, struct device *parent,
   dev_t devt, void *drvdata, const char *fmt, ...); */
-		device_create(devclass[i], NULL, dev, NULL, "%s_%d", devnames[i], i);
+		device_create(devclass[i], NULL, dev, NULL, "%s", devnames[i], i);
 #endif
 	}
 	printk(KERN_INFO "======== kerncalc module installed %d:[%d-%d] ===========\n",
