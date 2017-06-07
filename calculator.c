@@ -91,7 +91,7 @@ static ssize_t oper_write (struct file *file, char const *data1,
 	//size_of_message = strlen(message);                 // store the length of the stored message
 	printk(KERN_INFO " kerncalc: Received %zu characters from the user\n", count);
 
-	printk(KERN_INFO "=== pre write 0:count %zu , \n", copied);
+	printk(KERN_INFO "=== pre write 0:count %lu , \n", copied);
 	printk(KERN_INFO "=== pre write 1: str %s\n", message);
 	switch (*message) {
 	case '+':
@@ -198,7 +198,7 @@ static struct class *sysfs_class;
 int sysfs_init(void)
 {
 	int res;
-	sysfs_class = class_create(THIS_MODULE, "arg-class");
+	sysfs_class = class_create(THIS_MODULE, "kerncalc_arg-class");
 	if (IS_ERR(sysfs_class)) printk("bad class create\n");
 	res = class_create_file(sysfs_class, &class_attr_argument1);
 	if (res < 0)
