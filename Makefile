@@ -33,6 +33,8 @@ all: BRBIN
 	cp kerncalc.ko ./$(TARGETDIR)/lib/modules/$(KERNEL_VERSION)/
 	mkdir -p ./$(TARGETDIR)/etc/init.d/
 	cp S11load_kerncalc.sh ./$(TARGETDIR)/etc/init.d/
+	mkdir -p ./$(TARGETDIR)/root/
+	cp unittest.sh ./$(TARGETDIR)/root/
 
 BRBIN:
 	echo MAKE_OPTIONS = $(MAKE_OPTIONS)
