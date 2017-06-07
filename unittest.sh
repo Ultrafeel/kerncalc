@@ -28,3 +28,20 @@ then
 else
 	echo $fail
 fi
+
+echo current arguments retrieving 
+res=`cat /sys/class/$arg_class/argument1`
+if [ "$res" -eq 1 ]
+then
+	echo $right
+else
+	echo $fail
+fi
+
+res=`cat /sys/class/$arg_class/argument2`
+if [ "$res" -eq 15 ]
+then
+	echo $right
+else
+	echo $fail
+fi

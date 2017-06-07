@@ -127,8 +127,9 @@ ssize_t (*store)(struct class *class, const char *buf, size_t count);
 /* sysfs show() method. Calls the show() method corresponding to the individual sysfs file */
 static ssize_t arg_show(int opnum , char *buf)
 {
-	strcpy(buf, buf_msg);
-	printk("read %d\n", strlen(buf));
+	//strcpy(buf, buf_msg);
+	snprintf(buf, 128, "%d", arguments[opnum]);
+	printk("=== arg_show : read %d\n", strlen(buf));
 	return strlen(buf);
 }
 static ssize_t arg1_show(SYSFS_SHOW_DECLARE , char *buf)
