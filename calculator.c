@@ -13,17 +13,14 @@
 #include <linux/parport.h>
 #include <linux/pci.h>
 
-//#include <stdlib.h>
-
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("mml");
-MODULE_DESCRIPTION("A Simple kernel calc World module");
+MODULE_AUTHOR("MML");
+MODULE_DESCRIPTION("A Simple kernel calc module");
 
 static int calc_result = 0;
-static char *hello_str = "Hello, world!\n";
 static int arguments[2] = { 0, 0};
 static char operation = '+';
 
@@ -49,8 +46,8 @@ static ssize_t dev_read(struct file *file, char *buf,
 		return -EOVERFLOW;
 	len = MIN(res, 255);
 	//strlen(hello_str);
-	printk(KERN_INFO "=== Result: %d %c %d = %d .%s read : %d\n",arguments[0] ,
-		operation, arguments[1], calc_result, hello_str, count);
+	printk(KERN_INFO "=== Result: %d %c %d = %d. read : %d.\n",arguments[0] ,
+		operation, arguments[1], calc_result, count);
 	if (count < len)
 		return -EINVAL;
 	if (*ppos != 0)
@@ -77,7 +74,7 @@ static ssize_t oper_write (struct file *file, char const *data1,
 	n = MIN(count, max_mess_size-1);
 	notcopied = copy_from_user(message, data1, n);
 	if (count == notcopied) {
-		pr_err(" op _write not copied\n");
+		pr_err(" oper_write not copied\n");
 		return 0;
 	}
 
@@ -148,7 +145,7 @@ static ssize_t argument_store(int opnum, const char *buf, size_t count)
 	int ret;
 	size_t sizecop;
 	long arg;
-	printk("write %d\n", count);
+	pr_info("=== write %d\n", count);
 	sizecop = MIN(LEN_MSG, count);
 	strncpy(buf_msg, buf, sizecop);
 	buf_msg[ sizecop ] = '\0';	
@@ -320,14 +317,14 @@ static void __exit kernel_calc_cleanup(void)
 	{
 		dev = MKDEV(major, DEVICE_FIRST + i);
 		device_destroy(devclass[i], dev);
-	class_destroy(devclass[i]);
+		class_destroy(devclass[i]);
 	}
 	cdev_del(&hcdev_oper);
 	cdev_del(&hcdev_result);
 
 	unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
 	sysfs_cleanup();
-	printk(KERN_INFO "=============== module removed ==================\n");
+	printk(KERN_INFO "========= kerncalc module removed ==================\n");
 }
 
 module_init(kernel_calc_init);
