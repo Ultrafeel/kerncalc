@@ -64,7 +64,6 @@ static ssize_t dev_read(struct file *file, char *buf,
 }
 enum {max_mess_size = 255};
 static char   message[max_mess_size + 1] = {0};           ///< Memory for the string that is passed from userspace
-//static short  size_of_message;              ///< Used to remember the size of the string stored
 
 //i.e. operation
 static ssize_t oper_write (struct file *file, char const *data1,
@@ -78,11 +77,9 @@ static ssize_t oper_write (struct file *file, char const *data1,
 		return 0;
 	}
 
+	printk(KERN_INFO "=== kerncalc: oper_write: Received %zu .  str : %s\n", count,
+	 message);
 
-	printk(KERN_INFO " === kerncalc: Received %zu characters from the user\n", count);
-
-	printk(KERN_INFO "=== pre write 0:copied %zu , \n", count);
-	printk(KERN_INFO "=== pre write 1: str : '%s'\n", message);
 	switch (*message) {
 	case '+':
 	case '-':
@@ -237,7 +234,7 @@ static const struct file_operations oper_fops = {
 };
 #define DEVICE_FIRST 0
 #define DEVICE_COUNT 2
-#define MODNAME "my_kernel_calc_dev"
+#define MODNAME "my_kerncalc_dev"
 static struct cdev hcdev_result;
 static struct cdev hcdev_oper;
 static struct class *devclass[2];

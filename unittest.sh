@@ -3,7 +3,7 @@
 arg_class=kerncalc_arg-class
 b=_________________
 
-fail ="$b fail"
+fail="$b fail"
 right="$b success"
 echo '+' op 
 echo 12 > /sys/class/$arg_class/argument1
