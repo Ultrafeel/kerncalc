@@ -33,7 +33,7 @@ static ssize_t dev_read(struct file *file, char *buf,
 {
 	char buff[255];
 	int len;
-	
+	int res;
 
 	switch (operation)
 	{
@@ -46,7 +46,7 @@ static ssize_t dev_read(struct file *file, char *buf,
 	}
 	//plus
 	//arguments
-	int res = snprintf( buff, 255, "Result: %d %c %d = %d .%s", arguments[0] ,
+	res = snprintf( buff, 255, "Result: %d %c %d = %d .%s", arguments[0] ,
 		operation, arguments[1], calc_result, hello_str);
 	if (res <= 0)
 		return -EOVERFLOW;
@@ -76,17 +76,22 @@ static ssize_t operand_write (struct file *file, char const *data1,
 						size_t count, loff_t *ppos)
 {
 	//long result;
+	unsigned long copied;
 	//int ret;// char *pos;
-	char const* cpos;
+	//char const* cpos;
 	//char format[] = KERN_INFO "=== pre write : %zu , str '%0s'\n";
 	//cpos = data1;
-	copy_from_user(message, data1, MIN(count, max_mess_size-1));
-	message[max_mess_size-1] = 0;
+	copied = copy_from_user(message, data1, MIN(count, max_mess_size-1));
+	if (count == copied) {
+		pr_err(" op _write not copied");
+		return 0;
+	}
+	message[copied] = 0;
 	//snprintf(message, max_mess_size, "%s(%zu letters)", data1, count);   // appending received string with its length
 	//size_of_message = strlen(message);                 // store the length of the stored message
 	printk(KERN_INFO " kerncalc: Received %zu characters from the user\n", count);
 
-	printk(KERN_INFO "=== pre write 0:count %zu , \n", count);
+	printk(KERN_INFO "=== pre write 0:count %zu , \n", copied);
 	printk(KERN_INFO "=== pre write 1: str %s\n", message);
 	switch (*message) {
 	case '+':
@@ -95,6 +100,8 @@ static ssize_t operand_write (struct file *file, char const *data1,
 		printk(KERN_INFO "=== kerncalc: operation %c is set\n", operation);
 		break;
 	default:
+		pr_err(" no operation");
+		return 0;
 	}
 	
 	// /home/unencr/Prog_projects/kernel_calcf/kernel_calc/target_bin
@@ -106,7 +113,7 @@ static ssize_t operand_write (struct file *file, char const *data1,
 //EINVAL
 	//calc_result = result;
 	//printk(KERN_INFO "=== write : %zu , str %s, parsed: %ld\n", count, data, result);
-	return count;
+	return copied;
 	
 }
 //----------------------------------------
@@ -127,58 +134,65 @@ ssize_t (*show)(struct class *class, char *buf);
 ssize_t (*store)(struct class *class, const char *buf, size_t count);
 };
  */
-/* sysfs show() method. Calls the show() method corresponding to the individual sysfs file */
+/* sysfs store() method. Calls the store() method corresponding to the individual sysfs file */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
-
-static ssize_t x_show(struct class *class, struct class_attribute *attr, char *buf)
-{
+#define SYSFS_STORE_DECLARE struct class *class, struct class_attribute *attr
 #else
-
-static ssize_t x_show(struct class *class, char *buf)
-{
+#define SYSFS_STORE_DECLARE  struct class *class
 #endif
+#define SYSFS_SHOW_DECLARE  SYSFS_STORE_DECLARE
+
+/* sysfs show() method. Calls the show() method corresponding to the individual sysfs file */
+static ssize_t arg_show(int opnum , char *buf)
+{
 	strcpy(buf, buf_msg);
 	printk("read %d\n", strlen(buf));
 	return strlen(buf);
 }
+static ssize_t arg1_show(SYSFS_SHOW_DECLARE , char *buf)
+{
+	return arg_show(1, buf);
+}
+static ssize_t arg2_show(SYSFS_SHOW_DECLARE , char *buf)
+{
+	return arg_show(2, buf);
+}
 
 static ssize_t argument_store(int opnum, const char *buf, size_t count)
 {
-#endif
+	int ret;
+	size_t sizecop;
+	long arg;
 	printk("write %d\n", count);
-	strncpy(buf_msg, buf, count);
-	buf_msg[ count ] = '\0';	
+	sizecop = MIN(LEN_MSG, count);
+	strncpy(buf_msg, buf, sizecop);
+	buf_msg[ sizecop ] = '\0';	
 	
-	ret = kstrtol(buf_msg, 10, &arguments[opnum]);// sscanf atoi
+	ret = kstrtol(buf_msg, 10, &arg);// sscanf atoi
+	arguments[opnum] = arg;
 	if (ret < 0) {
 		pr_err( "=== kstrtol : %d \n", ret);
 		return 0;
 	}
-	pr_info("=== parsed %d", &arguments[opnum]);
+	pr_info("=== parsed %d", arguments[opnum]);
 	return count;
 }
 
-/* sysfs store() method. Calls the store() method corresponding to the individual sysfs file */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
 
-static ssize_t argument1_store(struct class *class, struct class_attribute *attr,
-	const char *buf, size_t count)
+static ssize_t argument1_store(SYSFS_STORE_DECLARE , const char *buf, size_t count)	
 {
-#else
-
-static ssize_t argument1_store(struct class *class, const char *buf, size_t count)
+	return argument_store(1, buf, count);
+}
+static ssize_t argument2_store(SYSFS_STORE_DECLARE , const char *buf, size_t count)	
 {
-#endif
-	
-
 	return argument_store(1, buf, count);
 }
 
 /* <linux/device.h>
 #define CLASS_ATTR(_name, _mode, _show, _store) \
 struct class_attribute class_attr_##_name = __ATTR(_name, _mode, _show, _store) */
-CLASS_ATTR(argument1, (S_IWUSR | S_IRUGO), &x_show, &argument1_store);
-CLASS_ATTR(argument2, (S_IWUSR | S_IRUGO), &x_show, &argument2_store);
+CLASS_ATTR(argument1, (S_IWUSR | S_IRUGO), &arg1_show, &argument1_store);
+CLASS_ATTR(argument2, (S_IWUSR | S_IRUGO), &arg2_show, &argument2_store);
 static struct class *sysfs_class;
 
 int sysfs_init(void)
@@ -188,14 +202,14 @@ int sysfs_init(void)
 	if (IS_ERR(sysfs_class)) printk("bad class create\n");
 	res = class_create_file(sysfs_class, &class_attr_argument1);
 	if (res < 0)
-		return ret;
+		return res;
 	res = class_create_file(sysfs_class, &class_attr_argument2);
 
 	/* <linux/device.h>
 	extern int __must_check class_create_file(struct class *class, const struct class_attribute
 	 *attr); */
 	printk("kerncalc 'sysfs'  initialized\n");
-	return ret;
+	return res;
 }
 
 void sysfs_cleanup(void)
@@ -293,12 +307,12 @@ static int __init kernel_calc_init(void)
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 		/* struct device *device_create( struct class *cls, struct device *parent,
 dev_t devt, const char *fmt, ...); */
-		device_create(devclass[i], NULL, dev, "%s", devnames[i], i);
+		device_create(devclass[i], NULL, dev, "%s", devnames[i]);
 #else
 		// прототип device_create() изменился!
 		/* struct device *device_create( struct class *cls, struct device *parent,
   dev_t devt, void *drvdata, const char *fmt, ...); */
-		device_create(devclass[i], NULL, dev, NULL, "%s", devnames[i], i);
+		device_create(devclass[i], NULL, dev, NULL, "%s", devnames[i]);
 #endif
 	}
 	ret = sysfs_init();
@@ -329,7 +343,7 @@ static void __exit kernel_calc_cleanup(void)
 	cdev_del(&hcdev_result);
 
 	unregister_chrdev_region(MKDEV(major, DEVICE_FIRST), DEVICE_COUNT);
-	sysfs_cleanup()
+	sysfs_cleanup();
 	printk(KERN_INFO "=============== module removed ==================\n");
 }
 
